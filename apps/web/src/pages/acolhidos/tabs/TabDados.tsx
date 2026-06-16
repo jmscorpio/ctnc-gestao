@@ -1,5 +1,6 @@
 import { MapPin, Phone, Pill, AlertTriangle, User, Users } from 'lucide-react'
 import type { Database } from '@ctnc/shared'
+import { useFotoUrl } from '../../../lib/storage'
 
 type Acolhido = Database['public']['Tables']['acolhidos']['Row']
 type Contato = Database['public']['Tables']['acolhidos_contato']['Row']
@@ -26,6 +27,7 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
 }
 
 export function TabDados({ acolhido, contato, responsaveis, medicamentos, advertencias }: Props) {
+  const fotoUrl = useFotoUrl(acolhido.foto_url)
   const idade = acolhido.data_nascimento
     ? Math.floor((Date.now() - new Date(acolhido.data_nascimento).getTime()) / (365.25 * 24 * 3600 * 1000))
     : null
@@ -129,8 +131,8 @@ export function TabDados({ acolhido, contato, responsaveis, medicamentos, advert
       <div className="space-y-5">
         <div className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col items-center">
           <div className="w-32 h-32 rounded-xl bg-gray-100 overflow-hidden border border-gray-200 flex items-center justify-center">
-            {acolhido.foto_url
-              ? <img src={acolhido.foto_url} alt="Foto" className="w-full h-full object-cover" />
+            {fotoUrl
+              ? <img src={fotoUrl} alt="Foto" className="w-full h-full object-cover" />
               : <User size={40} className="text-gray-300" />}
           </div>
           {acolhido.nome_social && (

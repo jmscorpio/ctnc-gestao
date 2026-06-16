@@ -5,6 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Upload, ArrowLeft, Save } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { uploadFoto, getFotoUrl } from '../../lib/storage'
+import { maskCPF, maskTelefone, maskCEP } from '../../lib/masks'
 import { useAuth } from '../../contexts/AuthContext'
 
 const schema = z.object({
@@ -75,10 +77,11 @@ export function AcolhidoFormPage() {
   const { profile } = useAuth()
   const [saving, setSaving] = useState(false)
   const [fotoUrl, setFotoUrl] = useState<string | null>(null)
+  const [fotoPreview, setFotoPreview] = useState<string | null>(null)
   const [uploadingFoto, setUploadingFoto] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { nacionalidade: 'Brasileira', sexo: 'masculino', data_acolhimento: new Date().toISOString().slice(0, 10) },
   })
@@ -116,6 +119,7 @@ export function AcolhidoFormPage() {
         responsavel_celular: resp?.celular ?? '',
       })
       setFotoUrl(acolhido.foto_url)
+      getFotoUrl(acolhido.foto_url).then(setFotoPreview)
     }
     load()
   }, [id, isEdit, reset])
@@ -124,14 +128,13 @@ export function AcolhidoFormPage() {
     const file = e.target.files?.[0]
     if (!file || !profile) return
     setUploadingFoto(true)
-    const ext = file.name.split('.').pop()
-    const path = `${profile.tenant_id}/fotos/${Date.now()}.${ext}`
-    const { error } = await supabase.storage.from('acolhidos').upload(path, file, { upsert: true })
-    if (!error) {
-      const { data } = supabase.storage.from('acolhidos').getPublicUrl(path)
-      setFotoUrl(data.publicUrl)
+    try {
+      const path = await uploadFoto(profile.tenant_id, file)
+      setFotoUrl(path)
+      setFotoPreview(URL.createObjectURL(file))
+    } finally {
+      setUploadingFoto(false)
     }
-    setUploadingFoto(false)
   }
 
   async function onSubmit(data: FormData) {
@@ -248,8 +251,8 @@ export function AcolhidoFormPage() {
           <h2 className="font-semibold text-gray-800 mb-4">Foto</h2>
           <div className="flex items-center gap-4">
             <div className="w-24 h-24 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-200">
-              {fotoUrl ? (
-                <img src={fotoUrl} alt="Foto do acolhido" className="w-full h-full object-cover" />
+              {fotoPreview ? (
+                <img src={fotoPreview} alt="Foto do acolhido" className="w-full h-full object-cover" />
               ) : (
                 <Upload size={24} className="text-gray-400" />
               )}
@@ -323,7 +326,7 @@ export function AcolhidoFormPage() {
               <Input {...register('nacionalidade')} placeholder="Brasileira" />
             </Field>
             <Field label="CPF">
-              <Input {...register('cpf')} placeholder="000.000.000-00" />
+              <Input {...register('cpf')} onChange={e => setValue('cpf', maskCPF(e.target.value))} inputMode="numeric" maxLength={14} placeholder="000.000.000-00" />
             </Field>
             <Field label="RG">
               <Input {...register('rg')} placeholder="Número do RG" />
@@ -352,16 +355,16 @@ export function AcolhidoFormPage() {
           <h2 className="font-semibold text-gray-800 mb-4">Contato e Endereço</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Telefone">
-              <Input {...register('telefone')} placeholder="(00) 0000-0000" />
+              <Input {...register('telefone')} onChange={e => setValue('telefone', maskTelefone(e.target.value))} inputMode="numeric" maxLength={15} placeholder="(00) 0000-0000" />
             </Field>
             <Field label="Celular">
-              <Input {...register('celular')} placeholder="(00) 90000-0000" />
+              <Input {...register('celular')} onChange={e => setValue('celular', maskTelefone(e.target.value))} inputMode="numeric" maxLength={15} placeholder="(00) 90000-0000" />
             </Field>
             <Field label="E-mail" error={errors.email?.message}>
               <Input type="email" {...register('email')} placeholder="email@exemplo.com" />
             </Field>
             <Field label="CEP">
-              <Input {...register('endereco_cep')} placeholder="00000-000" />
+              <Input {...register('endereco_cep')} onChange={e => setValue('endereco_cep', maskCEP(e.target.value))} inputMode="numeric" maxLength={9} placeholder="00000-000" />
             </Field>
             <Field label="Logradouro">
               <Input {...register('endereco_logradouro')} placeholder="Rua, Av..." />
@@ -392,7 +395,7 @@ export function AcolhidoFormPage() {
               <Input {...register('responsavel_parentesco')} placeholder="Mãe, Pai, Cônjuge..." />
             </Field>
             <Field label="Celular">
-              <Input {...register('responsavel_celular')} placeholder="(00) 90000-0000" />
+              <Input {...register('responsavel_celular')} onChange={e => setValue('responsavel_celular', maskTelefone(e.target.value))} inputMode="numeric" maxLength={15} placeholder="(00) 90000-0000" />
             </Field>
           </div>
         </div>
