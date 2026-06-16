@@ -7,6 +7,7 @@ import { Upload, ArrowLeft, Save } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { uploadFoto, getFotoUrl } from '../../lib/storage'
 import { maskCPF, maskTelefone, maskCEP } from '../../lib/masks'
+import { isValidCPF } from '../../lib/validators'
 import { useAuth } from '../../contexts/AuthContext'
 
 const schema = z.object({
@@ -19,7 +20,7 @@ const schema = z.object({
   profissao: z.string().optional(),
   naturalidade: z.string().optional(),
   nacionalidade: z.string().default('Brasileira'),
-  cpf: z.string().optional(),
+  cpf: z.string().optional().refine(v => !v || isValidCPF(v), { message: 'CPF inválido' }),
   rg: z.string().optional(),
   rg_orgao_emissor: z.string().optional(),
   data_acolhimento: z.string().min(1, 'Data de acolhimento obrigatória'),
@@ -325,7 +326,7 @@ export function AcolhidoFormPage() {
             <Field label="Nacionalidade">
               <Input {...register('nacionalidade')} placeholder="Brasileira" />
             </Field>
-            <Field label="CPF">
+            <Field label="CPF" error={errors.cpf?.message}>
               <Input {...register('cpf')} onChange={e => setValue('cpf', maskCPF(e.target.value))} inputMode="numeric" maxLength={14} placeholder="000.000.000-00" />
             </Field>
             <Field label="RG">
