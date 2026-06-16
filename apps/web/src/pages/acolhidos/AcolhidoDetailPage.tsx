@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, lazy, Suspense } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Edit } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
@@ -9,7 +9,9 @@ import { TabPAS } from './tabs/TabPAS'
 import { TabRegistros } from './tabs/TabRegistros'
 import { TabOcorrencias } from './tabs/TabOcorrencias'
 import { TabVisitas } from './tabs/TabVisitas'
-import { TabDocumentos } from './tabs/TabDocumentos'
+// Carregada sob demanda: puxa o @react-pdf/renderer (pesado), então só
+// baixa quando o usuário abre a aba Documentos — mantém o bundle inicial leve.
+const TabDocumentos = lazy(() => import('./tabs/TabDocumentos').then(m => ({ default: m.TabDocumentos })))
 
 type Acolhido = Database['public']['Tables']['acolhidos']['Row']
 type Contato = Database['public']['Tables']['acolhidos_contato']['Row']
@@ -158,7 +160,11 @@ export function AcolhidoDetailPage() {
       {aba === 'registros' && <TabRegistros acolhidoId={id!} />}
       {aba === 'ocorrencias' && <TabOcorrencias acolhidoId={id!} />}
       {aba === 'visitas' && <TabVisitas acolhidoId={id!} />}
-      {aba === 'documentos' && <TabDocumentos acolhidoId={id!} />}
+      {aba === 'documentos' && (
+        <Suspense fallback={<div className="flex justify-center py-12"><div className="w-7 h-7 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" /></div>}>
+          <TabDocumentos acolhidoId={id!} />
+        </Suspense>
+      )}
     </div>
   )
 }
