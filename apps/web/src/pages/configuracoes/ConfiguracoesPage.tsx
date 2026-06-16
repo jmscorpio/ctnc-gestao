@@ -3,6 +3,7 @@ import { Settings, Users, UserCheck, UserX, Shield } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import { ROLE_LABEL, ROLE_COR } from '../../lib/permissions'
+import { maskTelefone } from '../../lib/masks'
 import type { UserRole } from '@ctnc/shared'
 
 type AbaId = 'usuarios' | 'perfil'
@@ -216,7 +217,9 @@ function TabMeuPerfil() {
           <label className="text-xs text-gray-500 font-medium">Telefone</label>
           <input
             value={telefone}
-            onChange={e => setTelefone(e.target.value)}
+            onChange={e => setTelefone(maskTelefone(e.target.value))}
+            inputMode="numeric"
+            maxLength={15}
             placeholder="(11) 99999-0000"
             className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           />
